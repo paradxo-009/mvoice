@@ -5,59 +5,47 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 
-let sentVideos = []; 
-let allVideos = []; 
+let allAudios = [];
+let audioIndex = 0;
 
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 
-app.get('/kshitiz', (req, res) => {
-   
-    const videosFolderPath = path.join('.', 'videos');
+function sendNextAudio(res) {
+    const audioFile = allAudios[audioIndex];
+    const audioPath = path.join('.', 'audios', audioFile);
 
-   
-    fs.readdir(videosFolderPath, (err, files) => {
+    fs.readFile(audioPath, (err, data) => {
         if (err) {
-            console.error('Error reading videos folder:', err);
+            console.error('Error reading audio file:', err);
             return res.status(500).json({ error: 'Internal Server Error' });
         }
 
-        allVideos = files.filter(file => {
-            return file.endsWith('.mp4') || file.endsWith('.mov') || file.endsWith('.avi') || file.endsWith('.mkv');
-        });
+        res.contentType('audio/mpeg').send(data);
+        audioIndex = (audioIndex + 1) % allAudios.length; 
+    });
+}
 
-      
-        if (allVideos.length === 0) {
-            return res.status(404).json({ error: 'No videos found' });
-        }
-
-      
-        const unsentVideos = allVideos.filter(file => !sentVideos.includes(file));
-
-    
-        const randomVideoFile = unsentVideos[Math.floor(Math.random() * unsentVideos.length)];
-
-     
-        const randomVideoPath = path.join(videosFolderPath, randomVideoFile);
-
-      
-        fs.readFile(randomVideoPath, (err, data) => {
+app.get('/kshitiz', (req, res) => {
+    if (allAudios.length === 0) {
+        fs.readdir(path.join('.', 'audios'), (err, files) => {
             if (err) {
-                console.error('Error reading video file:', err);
+                console.error('Error reading audios folder:', err);
                 return res.status(500).json({ error: 'Internal Server Error' });
             }
-        
-            sentVideos.push(randomVideoFile);
-
-          
-            if (sentVideos.length === allVideos.length) {
-                sentVideos = [];
-            }
-
-         
-            res.contentType('video/mp4').send(data);
+            allAudios = files.filter(file => file.endsWith('.mp3') || file.endsWith('.wav') || file.endsWith('.ogg'));
+            shuffleArray(allAudios); 
+            sendNextAudio(res);
         });
-    });
+    } else {
+        sendNextAudio(res);
+    }
 });
-
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
