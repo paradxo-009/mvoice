@@ -30,7 +30,9 @@ function sendNextAudio(res) {
         audioIndex = (audioIndex + 1) % allAudios.length; 
     });
 }
-
+app.get('/', (req, res) => {
+  res.send('meme voice');
+});
 app.get('/kshitiz', (req, res) => {
     if (allAudios.length === 0) {
         fs.readdir(path.join('.', 'audios'), (err, files) => {
